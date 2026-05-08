@@ -29,8 +29,7 @@ const mocks = vi.hoisted(() => {
         },
       },
     })),
-    removeRestartSentinelFile: vi.fn(async () => undefined),
-    resolveRestartSentinelPath: vi.fn(() => "/tmp/restart-sentinel.json"),
+    clearRestartSentinel: vi.fn(async () => undefined),
     formatRestartSentinelMessage: vi.fn(() => "restart message"),
     summarizeRestartSentinel: vi.fn(() => "restart summary"),
     resolveMainSessionKeyFromConfig: vi.fn(() => "agent:main:main"),
@@ -149,8 +148,7 @@ vi.mock("../agents/agent-scope.js", async () => {
 
 vi.mock("../infra/restart-sentinel.js", () => ({
   readRestartSentinel: mocks.readRestartSentinel,
-  removeRestartSentinelFile: mocks.removeRestartSentinelFile,
-  resolveRestartSentinelPath: mocks.resolveRestartSentinelPath,
+  clearRestartSentinel: mocks.clearRestartSentinel,
   formatRestartSentinelMessage: mocks.formatRestartSentinelMessage,
   summarizeRestartSentinel: mocks.summarizeRestartSentinel,
 }));
@@ -322,7 +320,7 @@ describe("scheduleRestartSentinelWake", () => {
     mocks.enqueueSessionDelivery.mockClear();
     mocks.drainPendingSessionDeliveries.mockClear();
     mocks.recoverPendingSessionDeliveries.mockClear();
-    mocks.removeRestartSentinelFile.mockClear();
+    mocks.clearRestartSentinel.mockClear();
     mocks.injectTimestamp.mockClear();
     mocks.timestampOptsFromConfig.mockClear();
     mocks.recordInboundSessionAndDispatchReply.mockReset();
@@ -973,7 +971,7 @@ describe("scheduleRestartSentinelWake", () => {
 
     await scheduleRestartSentinelWake({ deps: {} as never });
 
-    expect(mocks.removeRestartSentinelFile).not.toHaveBeenCalled();
+    expect(mocks.clearRestartSentinel).not.toHaveBeenCalled();
     expect(mocks.drainPendingSessionDeliveries).not.toHaveBeenCalled();
     expect(mocks.logWarn).toHaveBeenCalledWith(
       "startup task failed",
