@@ -26,10 +26,6 @@ const hoisted = await vi.hoisted(async () => {
   };
 });
 
-vi.mock("../../config/sessions/paths.js", () => ({
-  createSqliteSessionTranscriptLocator: hoisted.createSqliteSessionTranscriptLocatorMock,
-}));
-
 vi.mock("../../config/sessions/store.js", () => ({
   getSessionEntry: (params: { sessionKey: string }) => hoisted.sessionRowsMock()[params.sessionKey],
   listSessionEntries: () =>
@@ -152,10 +148,6 @@ describe("buildExportSessionReply", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.createSqliteSessionTranscriptLocatorMock.mockImplementation(
-      ({ agentId, sessionId }: { agentId?: string; sessionId: string }) =>
-        `sqlite-transcript://${agentId ?? "main"}/${sessionId}.jsonl`,
-    );
     hoisted.sessionRowsMock.mockReturnValue({
       "agent:target:session": {
         sessionId: "session-1",
@@ -179,12 +171,12 @@ describe("buildExportSessionReply", () => {
     hoisted.exportHtmlTemplateContents.clear();
   });
 
-  it("resolves transcript paths from the target session agent", async () => {
+  it("checks SQLite transcript scope from the target session agent", async () => {
     const { buildExportSessionReply } = await import("./commands-export-session.js");
 
     await buildExportSessionReply(makeParams());
 
-    expect(hoisted.createSqliteSessionTranscriptLocatorMock).toHaveBeenCalledWith({
+    expect(hoisted.hasSqliteSessionTranscriptEventsMock).toHaveBeenCalledWith({
       agentId: "target",
       sessionId: "session-1",
     });
@@ -204,7 +196,7 @@ describe("buildExportSessionReply", () => {
     });
 
     expect(hoisted.sessionRowsMock).toHaveBeenCalled();
-    expect(hoisted.createSqliteSessionTranscriptLocatorMock).toHaveBeenCalledWith({
+    expect(hoisted.hasSqliteSessionTranscriptEventsMock).toHaveBeenCalledWith({
       agentId: "target",
       sessionId: "session-1",
     });
@@ -279,7 +271,6 @@ describe("buildExportSessionReply", () => {
     expect(reply.text).toContain("✅ Session exported!");
     expect(hoisted.exportSqliteSessionTranscriptJsonlMock).toHaveBeenCalledWith({
       agentId: "target",
-      sessionFile: "sqlite-transcript://target/session-1.jsonl",
       sessionId: "session-1",
     });
     const html = hoisted.writeFileMock.mock.calls[0]?.[1];
