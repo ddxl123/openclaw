@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createSqliteSessionTranscriptLocator } from "../../config/sessions/paths.js";
 import { upsertSessionEntry } from "../../config/sessions/store.js";
 import { replaceSqliteSessionTranscriptEvents } from "../../config/sessions/transcript-store.sqlite.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
@@ -44,19 +45,19 @@ function buildContextEngine(params: {
   };
 }
 
-async function writeSessionFile(params: { sessionFile: string; sessionId: string }) {
-  await fs.mkdir(path.dirname(params.sessionFile), { recursive: true });
+async function writeTranscriptLocator(params: { transcriptLocator: string; sessionId: string }) {
+  await fs.mkdir(path.dirname(params.transcriptLocator), { recursive: true });
   replaceSqliteSessionTranscriptEvents({
     agentId: "main",
     sessionId: params.sessionId,
-    transcriptPath: params.sessionFile,
+    transcriptPath: params.transcriptLocator,
     events: [
       {
         type: "session",
         version: CURRENT_SESSION_VERSION,
         id: params.sessionId,
         timestamp: new Date(0).toISOString(),
-        cwd: path.dirname(params.sessionFile),
+        cwd: path.dirname(params.transcriptLocator),
       },
       {
         type: "message",
@@ -98,13 +99,16 @@ describe("runCliTurnCompactionLifecycle", () => {
   it("compacts over-budget CLI transcripts and clears external CLI resume state", async () => {
     const sessionKey = "agent:main:cli";
     const sessionId = "session-cli";
-    const sessionFile = path.join(tmpDir, "session.jsonl");
-    await writeSessionFile({ sessionFile, sessionId });
+    const transcriptLocator = path.join(tmpDir, "session.jsonl");
+    const sqliteTranscriptLocator = createSqliteSessionTranscriptLocator({
+      agentId: "main",
+      sessionId,
+    });
+    await writeTranscriptLocator({ transcriptLocator, sessionId });
 
     const sessionEntry: SessionEntry = {
       sessionId,
       updatedAt: Date.now(),
-      sessionFile,
       contextTokens: 1_000,
       totalTokens: 950,
       totalTokensFresh: true,
@@ -158,7 +162,7 @@ describe("runCliTurnCompactionLifecycle", () => {
     expect(compactCalls[0]).toMatchObject({
       sessionId,
       sessionKey,
-      sessionFile,
+      transcriptLocator: sqliteTranscriptLocator,
       tokenBudget: 1_000,
       currentTokenCount: 950,
       force: true,
@@ -169,7 +173,7 @@ describe("runCliTurnCompactionLifecycle", () => {
         reason: "compaction",
         sessionId,
         sessionKey,
-        sessionFile,
+        transcriptLocator: sqliteTranscriptLocator,
       }),
     );
     expect(updatedEntry?.compactionCount).toBe(1);
