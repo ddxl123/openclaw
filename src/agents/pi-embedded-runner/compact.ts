@@ -981,7 +981,6 @@ async function compactEmbeddedPiSessionDirectOnce(
         agentId: sessionAgentId,
         sessionId: params.sessionId,
         sessionManager,
-        transcriptLocator: transcriptLocator,
       });
       compactionSessionManager = sessionManager;
       const settingsManager = createPreparedEmbeddedPiSettingsManager({
@@ -1303,7 +1302,6 @@ async function compactEmbeddedPiSessionDirectOnce(
                 firstKeptEntryId: effectiveFirstKeptEntryId,
                 tokensBefore: observedTokenCount ?? result.tokensBefore,
                 tokensAfter,
-                postTranscriptLocator: activeTranscriptLocator,
                 postLeafId: activePostLeafId,
                 postEntryId: activePostLeafId,
                 createdAt: compactStartedAt,
